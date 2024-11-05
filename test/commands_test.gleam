@@ -3,8 +3,8 @@ import redis/types.{SimpleString}
 import utils
 
 pub fn command_parsing_test() {
-  [#(SimpleString("PING"), Ok(Ping))]
-  |> utils.test_cases(commands.parse)
+  [#(SimpleString("PING"), Ping)]
+  |> utils.test_ok_cases(commands.parse)
 }
 
 pub fn command_processing_test() {
