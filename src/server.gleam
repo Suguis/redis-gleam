@@ -28,7 +28,7 @@ fn process_response(msg: BitArray) -> String {
   let response =
     msg
     |> bit_array.to_string
-    |> result.map_error(fn(_) { "invalid utf8 string" })
+    |> result.replace_error("invalid utf8 string")
     |> result.map(respond)
     |> result.flatten
   case response {

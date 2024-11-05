@@ -10,7 +10,7 @@ pub type RedisType {
 
 pub fn parse(input: String) -> Result(RedisType, String) {
   use #(first, _) <- result.try(
-    string.pop_grapheme(input) |> result.map_error(fn(_) { "empty request" }),
+    string.pop_grapheme(input) |> result.replace_error("empty request"),
   )
   case first {
     "+" -> parse_simple_string(input)
@@ -23,7 +23,7 @@ fn parse_simple_string(input: String) -> Result(RedisType, String) {
   use regex.Match(_, groups) <- result.try(
     regex.scan(with: re, content: input)
     |> list.first
-    |> result.map_error(fn(_) { "invalid simple string" }),
+    |> result.replace_error("invalid simple string"),
   )
   let assert Ok(Some(str)) = list.first(groups)
   Ok(SimpleString(str))
