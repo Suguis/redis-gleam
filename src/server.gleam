@@ -1,9 +1,20 @@
 import gleam/bit_array
+import gleam/bytes_builder
+import gleam/otp/actor
 import gleam/result
+import glisten.{type Connection, type Message, Packet}
 import redis/commands
 import redis/types
 
-pub fn process_response(msg: BitArray) -> String {
+pub fn handler(msg: Message(_), state: Nil, conn: Connection(_)) {
+  let assert Packet(msg) = msg
+  // todo: divide inline responses like Packet("+PING\r\n+PING\r\n")
+  let response = process_response(msg) |> bytes_builder.from_string
+  let assert Ok(_) = glisten.send(conn, response)
+  actor.continue(state)
+}
+
+fn process_response(msg: BitArray) -> String {
   let response =
     msg
     |> bit_array.to_string
