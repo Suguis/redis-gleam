@@ -1,12 +1,22 @@
 import gleam/bit_array
 import gleam/bytes_builder
+import gleam/erlang/process.{type Selector}
+import gleam/option.{type Option, None}
 import gleam/otp/actor
 import gleam/result
-import glisten.{type Connection, type Message, Packet}
+import glisten.{type Connection, type Handler, type Message, Packet}
 import redis/commands
 import redis/types
 
-pub fn handler(msg: Message(_), state: Nil, conn: Connection(_)) {
+pub fn new() -> Handler(_, Nil) {
+  glisten.handler(init, handler)
+}
+
+fn init(_conn) -> #(Nil, Option(Selector(_))) {
+  #(Nil, None)
+}
+
+fn handler(msg: Message(_), state: Nil, conn: Connection(_)) {
   let assert Packet(msg) = msg
   // todo: divide inline responses like Packet("+PING\r\n+PING\r\n")
   let response = process_response(msg) |> bytes_builder.from_string
