@@ -15,7 +15,12 @@ pub fn command_processing_test() {
 
 pub fn invalid_command_parsing_test() {
   [SimpleString(""), SimpleString("INVALID")]
-  |> list.map(fn(redis_type) { commands.parse(redis_type) |> should.be_error })
+  |> test_errors(commands.parse)
+}
+
+fn test_errors(cases: List(a), tested_function: fn(a) -> Result(_, _)) {
+  cases
+  |> list.map(fn(c) { tested_function(c) |> should.be_error })
 }
 
 fn test_cases(cases: List(#(a, b)), tested_function: fn(a) -> b) {
