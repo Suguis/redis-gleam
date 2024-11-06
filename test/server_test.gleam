@@ -7,8 +7,12 @@ pub fn ping_test() {
   [
     #("*1\r\n$4\r\nPING\r\n", "+PONG\r\n"),
     #("*1\r\n$4\r\nping\r\n", "+PONG\r\n"),
-    #("*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n", "$3\r\nhey\r\n"),
   ]
+  |> utils.test_cases(send_to_server)
+}
+
+pub fn echo_test() {
+  [#("*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n", "$3\r\nhey\r\n")]
   |> utils.test_cases(send_to_server)
 }
 
