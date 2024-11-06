@@ -12,6 +12,9 @@ pub fn type_parsing_test() {
     ]),
     #("+PING\r\n+PONG\r\n", [SimpleString("PING"), SimpleString("PONG")]),
     #("$-1\r\n", [Null]),
+    #("*1\r\n*2\r\n+PING\r\n$4\r\nPING\r\n", [
+      Array([Array([SimpleString("PING"), BulkString("PING")])]),
+    ]),
   ]
   |> utils.test_ok_cases(parser.parse)
 }
