@@ -1,12 +1,12 @@
 import gleam/string
-import redis/types.{type RedisType, Array, BulkString, SimpleString}
+import redis/types.{type RespType, Array, BulkString, SimpleString}
 
 pub type RedisCommand {
   Ping
   Echo(String)
 }
 
-pub fn parse(input: RedisType) -> Result(RedisCommand, String) {
+pub fn parse(input: RespType) -> Result(RedisCommand, String) {
   case input {
     Array([BulkString(cmd), ..args]) ->
       case string.lowercase(cmd), args {
@@ -18,7 +18,7 @@ pub fn parse(input: RedisType) -> Result(RedisCommand, String) {
   }
 }
 
-pub fn process(command: RedisCommand) -> RedisType {
+pub fn process(command: RedisCommand) -> RespType {
   case command {
     Ping -> SimpleString("PONG")
     Echo(str) -> BulkString(str)

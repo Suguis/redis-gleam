@@ -3,9 +3,9 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import redis/types.{type RedisType, Array, BulkString, Null, SimpleString}
+import redis/types.{type RespType, Array, BulkString, Null, SimpleString}
 
-pub fn parse(input: String) -> Result(List(RedisType), String) {
+pub fn parse(input: String) -> Result(List(RespType), String) {
   case string.is_empty(input) {
     True -> Error("unexpected empty string")
     False ->
@@ -19,13 +19,13 @@ pub fn parse(input: String) -> Result(List(RedisType), String) {
 
 fn parse_loop(
   input: String,
-  parsed_types: List(RedisType),
-) -> Result(List(RedisType), String) {
+  parsed_types: List(RespType),
+) -> Result(List(RespType), String) {
   case string.is_empty(input) {
     True -> Ok(parsed_types)
     False -> {
-      use #(redis_type, tail) <- result.try(parse_next(input))
-      parse_loop(tail, [redis_type, ..parsed_types])
+      use #(resp_type, tail) <- result.try(parse_next(input))
+      parse_loop(tail, [resp_type, ..parsed_types])
     }
   }
 }
@@ -33,21 +33,18 @@ fn parse_loop(
 fn parse_array_elements(
   input: String,
   size: Int,
-) -> Result(#(List(RedisType), String), String) {
+) -> Result(#(List(RespType), String), String) {
   case size {
     0 -> Ok(#([], input))
     size -> {
-      use #(redis_type, tail) <- result.try(parse_next(input))
-      use #(redis_types, tail) <- result.try(parse_array_elements(
-        tail,
-        size - 1,
-      ))
-      Ok(#([redis_type, ..redis_types], tail))
+      use #(resp_type, tail) <- result.try(parse_next(input))
+      use #(resp_types, tail) <- result.try(parse_array_elements(tail, size - 1))
+      Ok(#([resp_type, ..resp_types], tail))
     }
   }
 }
 
-fn parse_next(input: String) -> Result(#(RedisType, String), String) {
+fn parse_next(input: String) -> Result(#(RespType, String), String) {
   case input {
     "+" <> tail -> {
       use #(str, tail) <- result.try(parse_until_eol(tail))
