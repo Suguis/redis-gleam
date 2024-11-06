@@ -1,18 +1,26 @@
+import gleam/string
 import redis/types.{type RedisType, Array, BulkString, SimpleString}
 
 pub type RedisCommand {
   Ping
+  Echo(String)
 }
 
 pub fn parse(input: RedisType) -> Result(RedisCommand, String) {
   case input {
-    Array([BulkString("PING")]) -> Ok(Ping)
-    _ -> Error("unknown command")
+    Array([BulkString(cmd), ..args]) ->
+      case string.lowercase(cmd), args {
+        "echo", [BulkString(str)] -> Ok(Echo(str))
+        "ping", _ -> Ok(Ping)
+        cmd, _ -> Error("invalid command: " <> cmd)
+      }
+    _ -> Error("command must be inside array")
   }
 }
 
 pub fn process(command: RedisCommand) -> RedisType {
   case command {
     Ping -> SimpleString("PONG")
+    Echo(str) -> BulkString(str)
   }
 }
