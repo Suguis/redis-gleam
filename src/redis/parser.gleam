@@ -48,40 +48,32 @@ fn parse_array_elements(
 }
 
 fn parse_next(input: String) -> Result(#(RedisType, String), String) {
-  case string.pop_grapheme(input) {
-    Ok(#(fb, tail)) ->
-      case fb {
-        "+" -> {
-          use #(str, tail) <- result.try(parse_until_eol(tail))
-          Ok(#(SimpleString(str), tail))
-        }
-        "*" -> {
-          use #(digit, tail) <- result.try(parse_until_eol(tail))
-          use digit <- result.try(
-            int.parse(digit)
-            |> result.replace_error("expected digit, got: " <> digit),
-          )
-          use #(elements, tail) <- result.try(parse_array_elements(tail, digit))
-          Ok(#(Array(elements), tail))
-        }
-        "$" -> {
-          use #(digit, tail) <- result.try(parse_until_eol(tail))
-          use digit <- result.try(
-            int.parse(digit)
-            |> result.replace_error("expected digit, got: " <> digit),
-          )
-          case digit {
-            -1 -> Ok(#(Null, tail))
-            digit -> {
-              use #(str, tail) <- result.try(parse_n_graphemes(tail, digit))
-              use tail <- result.try(consume_until_eol(tail))
-              Ok(#(BulkString(str), tail))
-            }
-          }
-        }
-        _ -> Error("unknown redis type")
-      }
-    Error(_) -> Error("unexpected empty string")
+  case input {
+    "+" <> tail -> {
+      use #(str, tail) <- result.try(parse_until_eol(tail))
+      Ok(#(SimpleString(str), tail))
+    }
+    "*" <> tail -> {
+      use #(digit, tail) <- result.try(parse_until_eol(tail))
+      use digit <- result.try(
+        int.parse(digit)
+        |> result.replace_error("expected digit, got: " <> digit),
+      )
+      use #(elements, tail) <- result.try(parse_array_elements(tail, digit))
+      Ok(#(Array(elements), tail))
+    }
+    "$-1\r\n" <> tail -> Ok(#(Null, tail))
+    "$" <> tail -> {
+      use #(digit, tail) <- result.try(parse_until_eol(tail))
+      use digit <- result.try(
+        int.parse(digit)
+        |> result.replace_error("expected digit, got: " <> digit),
+      )
+      use #(str, tail) <- result.try(parse_n_graphemes(tail, digit))
+      use tail <- result.try(consume_until_eol(tail))
+      Ok(#(BulkString(str), tail))
+    }
+    _ -> Error("unknown redis type")
   }
 }
 
