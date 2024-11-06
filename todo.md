@@ -1,4 +1,3 @@
 - [ ] Refactor paramterized tests to tell where which exact case is failing
 - [ ] Refactor to remove state and do a function to parse the elements of the array
-- [ ] Rename Redis to Resp
 - [ ] Do error types instead of writing string by hand
