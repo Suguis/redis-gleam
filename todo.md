@@ -1,4 +1,3 @@
-- [ ] Refactor to use bitarrays, they allow to do pattern matching
 - [ ] Refactor paramterized tests to tell where which exact case is failing
 - [ ] Refactor to remove state and do a function to parse the elements of the array
 - [ ] Rename Redis to Resp
