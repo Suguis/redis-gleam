@@ -1,17 +1,33 @@
-import redis/types.{SimpleString}
+import redis/parser
+import redis/types.{Array, BulkString, SimpleString}
 import utils
 
 pub fn type_parsing_test() {
-  [#("+PING\r\n", SimpleString("PING"))]
-  |> utils.test_ok_cases(types.parse)
+  [
+    #("+PING\r\n", [SimpleString("PING")]),
+    #("$4\r\nPING\r\n", [BulkString("PING")]),
+    #("$2\r\nPING\r\n", [BulkString("PI")]),
+    #("*2\r\n+PING\r\n$4\r\nPING\r\n", [
+      Array([SimpleString("PING"), BulkString("PING")]),
+    ]),
+    #("+PING\r\n+PONG\r\n", [SimpleString("PING"), SimpleString("PONG")]),
+  ]
+  |> utils.test_ok_cases(parser.parse)
 }
 
 pub fn invalid_type_parsing_test() {
-  ["", "+PING", "PING\r\n"]
-  |> utils.test_errors(types.parse)
+  ["", "PING\r\n", "+PING", "$6\r\nPING\r\n", "$4PING\r\n", "$4\r\nPING"]
+  |> utils.test_errors(parser.parse)
 }
 
 pub fn type_to_string_test() {
-  [#(SimpleString("PING"), "+PING\r\n")]
+  [
+    #(SimpleString("PING"), "+PING\r\n"),
+    #(BulkString("PING"), "$4\r\nPING\r\n"),
+    #(
+      Array([SimpleString("PING"), BulkString("PING")]),
+      "*2\r\n+PING\r\n$4\r\nPING\r\n",
+    ),
+  ]
   |> utils.test_cases(types.to_string)
 }

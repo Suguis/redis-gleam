@@ -1,4 +1,4 @@
-import redis/types.{type RedisType}
+import redis/types.{type RedisType, Array, BulkString, SimpleString}
 
 pub type RedisCommand {
   Ping
@@ -6,13 +6,13 @@ pub type RedisCommand {
 
 pub fn parse(input: RedisType) -> Result(RedisCommand, String) {
   case input {
-    types.SimpleString("PING") -> Ok(Ping)
+    Array([BulkString("PING")]) -> Ok(Ping)
     _ -> Error("unknown command")
   }
 }
 
 pub fn process(command: RedisCommand) -> RedisType {
   case command {
-    Ping -> types.SimpleString("PONG")
+    Ping -> SimpleString("PONG")
   }
 }

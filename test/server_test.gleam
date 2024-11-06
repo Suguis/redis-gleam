@@ -4,7 +4,7 @@ import mug
 import utils
 
 pub fn ping_test() {
-  [#("+PING\r\n", "+PONG\r\n")]
+  [#("*1\r\n$4\r\nPING\r\n", "+PONG\r\n")]
   |> utils.test_cases(send_to_server)
 }
 
