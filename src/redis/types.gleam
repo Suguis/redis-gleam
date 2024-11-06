@@ -6,6 +6,7 @@ pub type RedisType {
   SimpleString(String)
   BulkString(String)
   Array(List(RedisType))
+  Null
 }
 
 pub fn to_string(input: RedisType) -> String {
@@ -18,5 +19,6 @@ pub fn to_string(input: RedisType) -> String {
       <> list.length(elems) |> int.to_string
       <> "\r\n"
       <> list.map(elems, to_string) |> string.concat
+    Null -> "$-1\r\n"
   }
 }

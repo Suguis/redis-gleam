@@ -3,24 +3,15 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import redis/types.{type RedisType, BulkString, SimpleString}
-
-pub type ParserTask {
-  Free
-  ReadingArray(remaining: Int, read_types: List(RedisType))
-}
-
-pub type ParseResult =
-  Result(#(ParserTask, List(RedisType)), String)
+import redis/types.{type RedisType, Array, BulkString, Null, SimpleString}
 
 pub fn parse(input: String) -> Result(List(RedisType), String) {
   case string.is_empty(input) {
     True -> Error("unexpected empty string")
     False ->
-      case parse_loop(input, Free, []) {
-        Ok(#(Free, [])) -> Error("could not parse anything")
-        Ok(#(Free, types)) -> Ok(list.reverse(types))
-        Ok(#(_, _)) -> Error("parsing ended without finishing to parse a type")
+      case parse_loop(input, []) {
+        Ok([]) -> Error("could not parse anything")
+        Ok(types) -> Ok(list.reverse(types))
         Error(err) -> Error(err)
       }
   }
@@ -28,15 +19,41 @@ pub fn parse(input: String) -> Result(List(RedisType), String) {
 
 fn parse_loop(
   input: String,
-  state: ParserTask,
   parsed_types: List(RedisType),
-) -> ParseResult {
+) -> Result(List(RedisType), String) {
+  case string.is_empty(input) {
+    True -> Ok(parsed_types)
+    False -> {
+      use #(redis_type, tail) <- result.try(parse_next(input))
+      parse_loop(tail, [redis_type, ..parsed_types])
+    }
+  }
+}
+
+fn parse_array_elements(
+  input: String,
+  size: Int,
+) -> Result(#(List(RedisType), String), String) {
+  case size {
+    0 -> Ok(#([], input))
+    size -> {
+      use #(redis_type, tail) <- result.try(parse_next(input))
+      use #(redis_types, tail) <- result.try(parse_array_elements(
+        tail,
+        size - 1,
+      ))
+      Ok(#([redis_type, ..redis_types], tail))
+    }
+  }
+}
+
+fn parse_next(input: String) -> Result(#(RedisType, String), String) {
   case string.pop_grapheme(input) {
     Ok(#(fb, tail)) ->
       case fb {
         "+" -> {
           use #(str, tail) <- result.try(parse_until_eol(tail))
-          handle_parsing_state(tail, state, SimpleString(str), parsed_types)
+          Ok(#(SimpleString(str), tail))
         }
         "*" -> {
           use #(digit, tail) <- result.try(parse_until_eol(tail))
@@ -44,7 +61,8 @@ fn parse_loop(
             int.parse(digit)
             |> result.replace_error("expected digit, got: " <> digit),
           )
-          parse_loop(tail, ReadingArray(digit, []), parsed_types)
+          use #(elements, tail) <- result.try(parse_array_elements(tail, digit))
+          Ok(#(Array(elements), tail))
         }
         "$" -> {
           use #(digit, tail) <- result.try(parse_until_eol(tail))
@@ -52,35 +70,18 @@ fn parse_loop(
             int.parse(digit)
             |> result.replace_error("expected digit, got: " <> digit),
           )
-          use #(str, tail) <- result.try(parse_n_graphemes(tail, digit))
-          use tail <- result.try(consume_until_eol(tail))
-          handle_parsing_state(tail, state, BulkString(str), parsed_types)
+          case digit {
+            -1 -> Ok(#(Null, tail))
+            digit -> {
+              use #(str, tail) <- result.try(parse_n_graphemes(tail, digit))
+              use tail <- result.try(consume_until_eol(tail))
+              Ok(#(BulkString(str), tail))
+            }
+          }
         }
         _ -> Error("unknown redis type")
       }
-    Error(_) -> Ok(#(state, parsed_types))
-  }
-}
-
-fn handle_parsing_state(
-  input: String,
-  state: ParserTask,
-  parsed_type: RedisType,
-  parsed_types: List(RedisType),
-) -> ParseResult {
-  case state {
-    Free -> parse_loop(input, Free, [parsed_type, ..parsed_types])
-    ReadingArray(1, read_types) ->
-      parse_loop(input, Free, [
-        types.Array(list.reverse([parsed_type, ..read_types])),
-        ..parsed_types
-      ])
-    ReadingArray(n, read_types) ->
-      parse_loop(
-        input,
-        ReadingArray(n - 1, [parsed_type, ..read_types]),
-        parsed_types,
-      )
+    Error(_) -> Error("unexpected empty string")
   }
 }
 

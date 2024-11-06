@@ -1,5 +1,5 @@
 import redis/parser
-import redis/types.{Array, BulkString, SimpleString}
+import redis/types.{Array, BulkString, Null, SimpleString}
 import utils
 
 pub fn type_parsing_test() {
@@ -11,6 +11,7 @@ pub fn type_parsing_test() {
       Array([SimpleString("PING"), BulkString("PING")]),
     ]),
     #("+PING\r\n+PONG\r\n", [SimpleString("PING"), SimpleString("PONG")]),
+    #("$-1\r\n", [Null]),
   ]
   |> utils.test_ok_cases(parser.parse)
 }
