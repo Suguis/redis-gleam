@@ -1,5 +1,6 @@
 import carpenter/table
 import command
+import command_error
 import gleam/bit_array
 import gleam/bytes_builder
 import gleam/erlang/process.{type Selector}
@@ -9,6 +10,7 @@ import gleam/otp/actor
 import gleam/result
 import gleam/string
 import glisten.{type Connection, type Handler, type Message, Packet}
+import parse_error
 import parser
 import resp
 
@@ -39,20 +41,24 @@ fn handler(msg: Message(_), state: Nil, conn: Connection(_)) {
 fn process_response(msg: BitArray) -> String {
   msg
   |> bit_array.to_string
-  |> result.replace_error("invalid utf8 string")
+  |> result.replace_error(
+    resp.BulkString("invalid utf8 string") |> resp.to_string,
+  )
   |> result.map(respond)
   |> result.flatten
-  |> result.map_error(string.append(_, "\r\n"))
   |> result.map(string.concat)
   |> result.unwrap_both
 }
 
 fn respond(input: String) -> Result(List(String), String) {
-  use request_types <- result.try(parser.parse(input))
+  use request_types <- result.try(
+    parser.parse(input) |> result.map_error(parse_error.to_string),
+  )
   use commands <- result.try(
     request_types
     |> list.map(command.parse)
-    |> result.all,
+    |> result.all
+    |> result.map_error(command_error.to_string),
   )
 
   let assert Ok(table) = table.ref(table_name)

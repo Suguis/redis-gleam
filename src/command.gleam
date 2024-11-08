@@ -1,4 +1,5 @@
 import carpenter/table
+import command_error.{type CommandError, Invalid, Malformed}
 import gleam/string
 import resp.{type RespType, Array, BulkString, Null, SimpleString}
 
@@ -9,7 +10,7 @@ pub type RedisCommand {
   Set(String, String)
 }
 
-pub fn parse(input: RespType) -> Result(RedisCommand, String) {
+pub fn parse(input: RespType) -> Result(RedisCommand, CommandError) {
   case input {
     Array([BulkString(cmd), ..args]) ->
       case string.lowercase(cmd), args {
@@ -17,9 +18,9 @@ pub fn parse(input: RespType) -> Result(RedisCommand, String) {
         "ping", _ -> Ok(Ping)
         "get", [BulkString(key)] -> Ok(Get(key))
         "set", [BulkString(key), BulkString(val)] -> Ok(Set(key, val))
-        cmd, _ -> Error("invalid command: " <> cmd)
+        cmd, _ -> Error(Invalid(cmd))
       }
-    _ -> Error("command must be inside array")
+    _ -> Error(Malformed)
   }
 }
 
