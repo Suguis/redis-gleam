@@ -9,38 +9,35 @@ import resp.{Array, BulkString}
 import utils
 
 pub fn ping_test() {
-  [
-    #("*1\r\n$4\r\nPING\r\n", "+PONG\r\n"),
-    #("*1\r\n$4\r\nping\r\n", "+PONG\r\n"),
-  ]
-  |> utils.test_cases(send_to_server)
+  [#("PING", "+PONG\r\n"), #("ping", "+PONG\r\n")]
+  |> utils.test_cases(send_command_to_server)
 }
 
 pub fn echo_test() {
-  [#("*2\r\n$4\r\nECHO\r\n$3\r\nhey\r\n", "$3\r\nhey\r\n")]
-  |> utils.test_cases(send_to_server)
+  [#("ECHO hey", "$3\r\nhey\r\n")]
+  |> utils.test_cases(send_command_to_server)
 }
 
 pub fn set_get_test() {
   [
-    #("*3\r\n$3\r\nset\r\n$3\r\nfoo\r\n$3\r\nbar\r\n", "+OK\r\n"),
-    #("*2\r\n$3\r\nget\r\n$3\r\nfoo\r\n", "$3\r\nbar\r\n"),
-    #("*2\r\n$3\r\nget\r\n$3\r\nbaz\r\n", "$-1\r\n"),
+    #("SET foo bar", "+OK\r\n"),
+    #("GET foo", "$3\r\nbar\r\n"),
+    #("GET baz", "$-1\r\n"),
   ]
-  |> utils.test_cases(send_to_server)
+  |> utils.test_cases(send_command_to_server)
 }
 
 pub fn set_px_test() {
   let time = 20
   [
     #("SET foo_px bar PX " <> int.to_string(time), "+OK\r\n"),
-    #("get foo_px", "$3\r\nbar\r\n"),
+    #("GET foo_px", "$3\r\nbar\r\n"),
   ]
   |> utils.test_cases(send_command_to_server)
 
   process.sleep(time + 5)
 
-  [#("get foo_px", "$-1\r\n")]
+  [#("GET foo_px", "$-1\r\n")]
   |> utils.test_cases(send_command_to_server)
 }
 
