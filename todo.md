@@ -1,0 +1,2 @@
+- Rename types_test to resp_test
+- Testing function that makes thing until it give false or true, or until timeout

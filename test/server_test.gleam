@@ -1,6 +1,11 @@
 import consts
 import gleam/bit_array
+import gleam/erlang/process
+import gleam/int
+import gleam/list
+import gleam/string
 import mug
+import resp.{Array, BulkString}
 import utils
 
 pub fn ping_test() {
@@ -25,6 +30,24 @@ pub fn set_get_test() {
   |> utils.test_cases(send_to_server)
 }
 
+pub fn set_px_test() {
+  let time = 20
+  [
+    #("SET foo_px bar PX " <> int.to_string(time), "+OK\r\n"),
+    #("get foo_px", "$3\r\nbar\r\n"),
+  ]
+  |> utils.test_cases(send_command_to_server)
+
+  process.sleep(time + 5)
+
+  [#("get foo_px", "$-1\r\n")]
+  |> utils.test_cases(send_command_to_server)
+}
+
+fn send_command_to_server(command: String) -> String {
+  send_to_server(redis_cli_to_string(command))
+}
+
 fn send_to_server(input: String) -> String {
   let assert Ok(socket) =
     mug.new("localhost", consts.server_port)
@@ -35,4 +58,8 @@ fn send_to_server(input: String) -> String {
   let assert Ok(_) = mug.shutdown(socket)
   let assert Ok(output) = packet |> bit_array.to_string
   output
+}
+
+fn redis_cli_to_string(command: String) -> String {
+  Array(command |> string.split(" ") |> list.map(BulkString)) |> resp.to_string
 }
