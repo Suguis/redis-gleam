@@ -3,7 +3,7 @@ import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
-import redis/types.{type RespType, Array, BulkString, Null, SimpleString}
+import resp.{type RespType, Array, BulkString, Null, SimpleString}
 
 pub fn parse(input: String) -> Result(List(RespType), String) {
   case string.is_empty(input) {

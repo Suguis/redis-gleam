@@ -1,5 +1,5 @@
-import redis/parser
-import redis/types.{Array, BulkString, Null, SimpleString}
+import parser
+import resp.{Array, BulkString, Null, SimpleString}
 import utils
 
 pub fn type_parsing_test() {
@@ -32,6 +32,7 @@ pub fn type_to_string_test() {
       Array([SimpleString("PING"), BulkString("PING")]),
       "*2\r\n+PING\r\n$4\r\nPING\r\n",
     ),
+    #(Null, "$-1\r\n"),
   ]
-  |> utils.test_cases(types.to_string)
+  |> utils.test_cases(resp.to_string)
 }

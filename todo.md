@@ -1,5 +1,2 @@
-- [ ] Refactor paramterized tests to tell where which exact case is failing
-- [ ] Refactor to remove state and do a function to parse the elements of the array
 - [ ] Do error types instead of writing string by hand
-- [ ] Refactor tests to not parametrize everything
 - [ ] Use resp. to avoid importing ALL constructors

@@ -1,4 +1,5 @@
 import carpenter/table
+import command
 import gleam/bit_array
 import gleam/bytes_builder
 import gleam/erlang/process.{type Selector}
@@ -8,9 +9,8 @@ import gleam/otp/actor
 import gleam/result
 import gleam/string
 import glisten.{type Connection, type Handler, type Message, Packet}
-import redis/commands
-import redis/parser
-import redis/types
+import parser
+import resp
 
 pub const table_name = "redis"
 
@@ -51,15 +51,13 @@ fn respond(input: String) -> Result(List(String), String) {
   use request_types <- result.try(parser.parse(input))
   use commands <- result.try(
     request_types
-    |> list.map(commands.parse)
+    |> list.map(command.parse)
     |> result.all,
   )
 
   let assert Ok(table) = table.ref(table_name)
 
   commands
-  |> list.map(fn(command) {
-    commands.process(command, table) |> types.to_string
-  })
+  |> list.map(fn(command) { command.process(command, table) |> resp.to_string })
   |> Ok
 }

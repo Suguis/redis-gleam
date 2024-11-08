@@ -1,6 +1,6 @@
 import carpenter/table
 import gleam/string
-import redis/types.{type RespType, Array, BulkString, Null, SimpleString}
+import resp.{type RespType, Array, BulkString, Null, SimpleString}
 
 pub type RedisCommand {
   Ping
