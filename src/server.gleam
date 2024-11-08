@@ -1,3 +1,4 @@
+import carpenter/table
 import gleam/bit_array
 import gleam/bytes_builder
 import gleam/erlang/process.{type Selector}
@@ -11,7 +12,16 @@ import redis/commands
 import redis/parser
 import redis/types
 
+pub const table_name = "redis"
+
 pub fn new() -> Handler(_, Nil) {
+  let assert Ok(_) =
+    table.build(table_name)
+    |> table.privacy(table.Public)
+    |> table.write_concurrency(table.AutoWriteConcurrency)
+    |> table.read_concurrency(True)
+    |> table.compression(False)
+    |> table.set
   glisten.handler(init, handler)
 }
 
@@ -45,7 +55,11 @@ fn respond(input: String) -> Result(List(String), String) {
     |> result.all,
   )
 
+  let assert Ok(table) = table.ref(table_name)
+
   commands
-  |> list.map(fn(command) { commands.process(command) |> types.to_string })
+  |> list.map(fn(command) {
+    commands.process(command, table) |> types.to_string
+  })
   |> Ok
 }

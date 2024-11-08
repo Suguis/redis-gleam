@@ -1,3 +1,5 @@
+import carpenter/table
+import gleam/int
 import gleam/list
 import gleeunit/should
 
@@ -21,4 +23,15 @@ pub fn test_cases(cases: List(#(a, b)), tested_function: fn(a) -> b) {
     let #(initial, expected) = c
     tested_function(initial) |> should.equal(expected)
   })
+}
+
+pub fn empty_table() -> table.Set(String, String) {
+  let assert Ok(table) =
+    table.build(int.random(1_000_000) |> int.to_string)
+    |> table.privacy(table.Private)
+    |> table.write_concurrency(table.AutoWriteConcurrency)
+    |> table.read_concurrency(True)
+    |> table.compression(False)
+    |> table.set
+  table
 }

@@ -16,6 +16,15 @@ pub fn echo_test() {
   |> utils.test_cases(send_to_server)
 }
 
+pub fn set_get_test() {
+  [
+    #("*3\r\n$3\r\nset\r\n$3\r\nfoo\r\n$3\r\nbar\r\n", "+OK\r\n"),
+    #("*2\r\n$3\r\nget\r\n$3\r\nfoo\r\n", "$3\r\nbar\r\n"),
+    #("*2\r\n$3\r\nget\r\n$3\r\nbaz\r\n", "$-1\r\n"),
+  ]
+  |> utils.test_cases(send_to_server)
+}
+
 fn send_to_server(input: String) -> String {
   let assert Ok(socket) =
     mug.new("localhost", consts.server_port)
