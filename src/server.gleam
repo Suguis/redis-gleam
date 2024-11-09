@@ -14,7 +14,7 @@ import parse_error
 import parser
 import resp
 
-pub const table_name = "redis"
+const table_name = "redis"
 
 pub fn new() -> Handler(_, Nil) {
   let assert Ok(_) =
