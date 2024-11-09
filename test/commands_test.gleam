@@ -1,5 +1,5 @@
-import carpenter/table
-import command.{ConfigGet, Echo, Get, Ping, Set, SetArgs}
+import bravo/uset
+import command.{ConfigGet, Echo, Get, Keys, Ping, Set, SetArgs}
 import gleam/function
 import gleam/option.{None, Some}
 import gleeunit/should
@@ -30,6 +30,7 @@ pub fn command_parsing_test() {
       Array([BulkString("config"), BulkString("get"), BulkString("dir")]),
       ConfigGet("dir"),
     ),
+    #(Array([BulkString("keys"), BulkString("*")]), Keys),
   ]
   |> utils.test_ok_cases(command.parse)
 }
@@ -52,12 +53,12 @@ pub fn set_processing_test() {
     config_table: utils.empty_table(),
   )
   |> should.equal(SimpleString("OK"))
-  table.lookup(store_table, "foo") |> should.equal([#("foo", "bar")])
+  uset.lookup(store_table, "foo") |> should.equal(Ok(#("foo", "bar")))
 }
 
 pub fn get_processing_test() {
   let store_table =
-    utils.empty_table() |> function.tap(table.insert(_, [#("foo", "bar")]))
+    utils.empty_table() |> function.tap(uset.insert(_, [#("foo", "bar")]))
 
   [#(Get("foo"), BulkString("bar")), #(Get("baz"), Null)]
   |> utils.test_cases(command.process(
@@ -70,7 +71,7 @@ pub fn get_processing_test() {
 pub fn config_get_processing_test() {
   let config_table =
     utils.empty_table()
-    |> function.tap(table.insert(_, [
+    |> function.tap(uset.insert(_, [
       #("dir", "/tmp/redis-files"),
       #("dbfilename", "dump.rdb"),
     ]))
@@ -90,6 +91,18 @@ pub fn config_get_processing_test() {
     _,
     store_table: utils.empty_table(),
     config_table:,
+  ))
+}
+
+pub fn keys_processing_test() {
+  let store_table =
+    utils.empty_table() |> function.tap(uset.insert(_, [#("foo", "bar")]))
+
+  [#(Keys, Array([BulkString("foo")]))]
+  |> utils.test_cases(command.process(
+    _,
+    store_table:,
+    config_table: utils.empty_table(),
   ))
 }
 

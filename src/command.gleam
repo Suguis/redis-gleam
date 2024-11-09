@@ -1,7 +1,8 @@
-import carpenter/table
+import bravo/uset
 import command_error.{type CommandError, Invalid, Malformed}
 import gleam/erlang/process
 import gleam/int
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/task
 import gleam/result
@@ -14,6 +15,7 @@ pub type RedisCommand {
   Get(String)
   Set(key: String, value: String, args: SetArgs)
   ConfigGet(String)
+  Keys
 }
 
 pub type SetArgs {
@@ -37,6 +39,7 @@ pub fn parse(input: RespType) -> Result(RedisCommand, CommandError) {
             cmd, _ -> Error(Invalid("config " <> cmd))
           }
         }
+        "keys", [BulkString("*")] -> Ok(Keys)
         cmd, _ -> Error(Invalid(cmd))
       }
     _ -> Error(Malformed)
@@ -63,35 +66,37 @@ fn parse_set_args(args: List(RespType)) -> Result(SetArgs, CommandError) {
 
 pub fn process(
   command: RedisCommand,
-  store_table store_table: table.Set(String, String),
-  config_table config_table: table.Set(String, String),
+  store_table store_table: uset.USet(#(String, String)),
+  config_table config_table: uset.USet(#(String, String)),
 ) -> RespType {
   case command {
     Ping -> SimpleString("PONG")
     Echo(str) -> BulkString(str)
     Get(key) ->
-      case store_table |> table.lookup(key) {
-        [] -> Null
-        [#(_, val)] -> BulkString(val)
-        _ -> panic as "unreachable"
+      case store_table |> uset.lookup(key) {
+        Error(_) -> Null
+        Ok(#(_, val)) -> BulkString(val)
       }
     Set(key, val, SetArgs(px: None)) -> {
-      table.insert(store_table, [#(key, val)])
+      uset.insert(store_table, [#(key, val)])
       SimpleString("OK")
     }
     Set(key, val, SetArgs(px: Some(px))) -> {
-      table.insert(store_table, [#(key, val)])
+      uset.insert(store_table, [#(key, val)])
       task.async(fn() {
         process.sleep(px)
-        table.delete(store_table, key)
+        uset.delete_key(store_table, key)
       })
       SimpleString("OK")
     }
     ConfigGet(key) ->
-      case config_table |> table.lookup(key) {
-        [] -> Array([])
-        [#(key, val)] -> Array([BulkString(key), BulkString(val)])
-        _ -> panic as "unreachable"
+      case config_table |> uset.lookup(key) {
+        Error(_) -> Array([])
+        Ok(#(key, val)) -> Array([BulkString(key), BulkString(val)])
       }
+    Keys ->
+      uset.tab2list(store_table)
+      |> list.map(fn(k) { BulkString(k.0) })
+      |> Array
   }
 }

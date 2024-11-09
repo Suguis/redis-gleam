@@ -1,4 +1,5 @@
-import carpenter/table
+import bravo
+import bravo/uset
 import gleam/int
 import gleam/list
 import gleeunit/should
@@ -25,13 +26,8 @@ pub fn test_cases(cases: List(#(a, b)), tested_function: fn(a) -> b) {
   })
 }
 
-pub fn empty_table() -> table.Set(String, String) {
+pub fn empty_table() -> uset.USet(#(String, String)) {
   let assert Ok(table) =
-    table.build(int.random(1_000_000) |> int.to_string)
-    |> table.privacy(table.Private)
-    |> table.write_concurrency(table.AutoWriteConcurrency)
-    |> table.read_concurrency(True)
-    |> table.compression(False)
-    |> table.set
+    uset.new(int.random(1_000_000) |> int.to_string, 1, bravo.Private)
   table
 }

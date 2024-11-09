@@ -49,6 +49,11 @@ pub fn config_get_test() {
   |> utils.test_cases(send_command_to_server)
 }
 
+pub fn keys_test() {
+  [#("SET foo bar", "+OK\r\n"), #("KEYS *", "*1\r\n$3\r\nfoo\r\n")]
+  |> utils.test_cases(send_command_to_server)
+}
+
 fn send_command_to_server(command: String) -> String {
   send_to_server(redis_cli_to_string(command))
 }
