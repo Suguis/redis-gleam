@@ -1,5 +1,5 @@
 import carpenter/table
-import command.{ConfigGet, Echo, Get, Ping, Set}
+import command.{ConfigGet, Echo, Get, Ping, Set, SetArgs}
 import gleam/function
 import gleam/option.{None, Some}
 import gleeunit/should
@@ -14,7 +14,7 @@ pub fn command_parsing_test() {
     #(Array([BulkString("get"), BulkString("foo")]), Get("foo")),
     #(
       Array([BulkString("set"), BulkString("foo"), BulkString("bar")]),
-      Set("foo", "bar", None),
+      Set("foo", "bar", SetArgs(px: None)),
     ),
     #(
       Array([
@@ -24,7 +24,7 @@ pub fn command_parsing_test() {
         BulkString("px"),
         BulkString("100"),
       ]),
-      Set("foo", "bar", px: Some(100)),
+      Set("foo", "bar", SetArgs(px: Some(100))),
     ),
     #(
       Array([BulkString("config"), BulkString("get"), BulkString("dir")]),
@@ -47,7 +47,7 @@ pub fn set_processing_test() {
   let store_table = utils.empty_table()
 
   command.process(
-    Set("foo", "bar", None),
+    Set("foo", "bar", SetArgs(px: None)),
     store_table:,
     config_table: utils.empty_table(),
   )
