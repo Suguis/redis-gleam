@@ -14,16 +14,13 @@ import parse_error
 import parser
 import resp
 
-const table_name = "redis"
+const store_table_name = "redis"
 
-pub fn new() -> Handler(_, Nil) {
-  let assert Ok(_) =
-    table.build(table_name)
-    |> table.privacy(table.Public)
-    |> table.write_concurrency(table.AutoWriteConcurrency)
-    |> table.read_concurrency(True)
-    |> table.compression(False)
-    |> table.set
+const config_table_name = "redis-config"
+
+pub fn new(config: List(#(String, String))) -> Handler(_, Nil) {
+  setup_table(store_table_name, [])
+  setup_table(config_table_name, config)
   glisten.handler(init, handler)
 }
 
@@ -61,9 +58,24 @@ fn respond(input: String) -> Result(List(String), String) {
     |> result.map_error(command_error.to_string),
   )
 
-  let assert Ok(table) = table.ref(table_name)
+  let assert Ok(store_table) = table.ref(store_table_name)
+  let assert Ok(config_table) = table.ref(config_table_name)
 
   commands
-  |> list.map(fn(command) { command.process(command, table) |> resp.to_string })
+  |> list.map(fn(command) {
+    command.process(command, store_table:, config_table:) |> resp.to_string
+  })
   |> Ok
+}
+
+fn setup_table(name: String, values: List(#(a, b))) {
+  let assert Ok(table) =
+    table.build(name)
+    |> table.privacy(table.Public)
+    |> table.write_concurrency(table.AutoWriteConcurrency)
+    |> table.read_concurrency(True)
+    |> table.compression(False)
+    |> table.set
+
+  table.insert(table, values)
 }

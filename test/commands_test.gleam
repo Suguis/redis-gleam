@@ -1,5 +1,5 @@
 import carpenter/table
-import command.{Echo, Get, Ping, Set}
+import command.{ConfigGet, Echo, Get, Ping, Set}
 import gleam/function
 import gleam/option.{None, Some}
 import gleeunit/should
@@ -26,29 +26,71 @@ pub fn command_parsing_test() {
       ]),
       Set("foo", "bar", px: Some(100)),
     ),
+    #(
+      Array([BulkString("config"), BulkString("get"), BulkString("dir")]),
+      ConfigGet("dir"),
+    ),
   ]
   |> utils.test_ok_cases(command.parse)
 }
 
 pub fn pong_echo_processing_test() {
   [#(Ping, SimpleString("PONG")), #(Echo("hey"), BulkString("hey"))]
-  |> utils.test_cases(command.process(_, utils.empty_table()))
+  |> utils.test_cases(command.process(
+    _,
+    store_table: utils.empty_table(),
+    config_table: utils.empty_table(),
+  ))
 }
 
 pub fn set_processing_test() {
-  let table = utils.empty_table()
+  let store_table = utils.empty_table()
 
-  command.process(Set("foo", "bar", None), table)
+  command.process(
+    Set("foo", "bar", None),
+    store_table:,
+    config_table: utils.empty_table(),
+  )
   |> should.equal(SimpleString("OK"))
-  table.lookup(table, "foo") |> should.equal([#("foo", "bar")])
+  table.lookup(store_table, "foo") |> should.equal([#("foo", "bar")])
 }
 
 pub fn get_processing_test() {
-  let table =
+  let store_table =
     utils.empty_table() |> function.tap(table.insert(_, [#("foo", "bar")]))
 
   [#(Get("foo"), BulkString("bar")), #(Get("baz"), Null)]
-  |> utils.test_cases(command.process(_, table))
+  |> utils.test_cases(command.process(
+    _,
+    store_table:,
+    config_table: utils.empty_table(),
+  ))
+}
+
+pub fn config_get_processing_test() {
+  let config_table =
+    utils.empty_table()
+    |> function.tap(table.insert(_, [
+      #("dir", "/tmp/redis-files"),
+      #("dbfilename", "dump.rdb"),
+    ]))
+
+  [
+    #(
+      ConfigGet("dir"),
+      Array([BulkString("dir"), BulkString("/tmp/redis-files")]),
+    ),
+    #(
+      ConfigGet("dbfilename"),
+      Array([BulkString("dbfilename"), BulkString("dump.rdb")]),
+    ),
+    #(ConfigGet("unknown"), Array([])),
+  ]
+  |> utils.test_cases(command.process(
+    _,
+    store_table: utils.empty_table(),
+    config_table:,
+  ))
 }
 
 pub fn invalid_command_parsing_test() {

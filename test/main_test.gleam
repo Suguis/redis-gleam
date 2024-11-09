@@ -11,5 +11,5 @@ pub fn main() {
 }
 
 fn setup_server() -> Result(Subject(Message), StartError) {
-  server.new() |> glisten.serve(consts.server_port)
+  server.new(consts.server_config) |> glisten.serve(consts.server_port)
 }

@@ -1,1 +1,3 @@
 - Testing function that makes thing until it give false or true, or until timeout
+- Make table private and use an actor to manage read/write
+- Add mechanism to test set with time on unit test, using subjects

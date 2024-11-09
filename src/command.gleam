@@ -16,6 +16,7 @@ pub type RedisCommand {
   Echo(String)
   Get(String)
   Set(key: String, value: String, px: Option(Int))
+  ConfigGet(String)
 }
 
 const set_args_definition = [#("px", 1)]
@@ -44,6 +45,12 @@ pub fn parse(input: RespType) -> Result(RedisCommand, CommandError) {
             },
           )
           Ok(Set(key, val, px: px))
+        }
+        "config", [BulkString(cmd), ..args] -> {
+          case string.lowercase(cmd), args {
+            "get", [BulkString(str)] -> Ok(ConfigGet(str))
+            cmd, _ -> Error(Invalid("config " <> cmd))
+          }
         }
         cmd, _ -> Error(Invalid(cmd))
       }
@@ -90,28 +97,35 @@ fn parse_args_loop(
 
 pub fn process(
   command: RedisCommand,
-  table: table.Set(String, String),
+  store_table store_table: table.Set(String, String),
+  config_table config_table: table.Set(String, String),
 ) -> RespType {
   case command {
     Ping -> SimpleString("PONG")
     Echo(str) -> BulkString(str)
     Get(key) ->
-      case table |> table.lookup(key) {
+      case store_table |> table.lookup(key) {
         [] -> Null
         [#(_, val)] -> BulkString(val)
         _ -> panic as "unreachable"
       }
     Set(key, val, None) -> {
-      table.insert(table, [#(key, val)])
+      table.insert(store_table, [#(key, val)])
       SimpleString("OK")
     }
     Set(key, val, px: Some(px)) -> {
-      table.insert(table, [#(key, val)])
+      table.insert(store_table, [#(key, val)])
       task.async(fn() {
         process.sleep(px)
-        table.delete(table, key)
+        table.delete(store_table, key)
       })
       SimpleString("OK")
     }
+    ConfigGet(key) ->
+      case config_table |> table.lookup(key) {
+        [] -> Array([])
+        [#(key, val)] -> Array([BulkString(key), BulkString(val)])
+        _ -> panic as "unreachable"
+      }
   }
 }

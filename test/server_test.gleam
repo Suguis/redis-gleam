@@ -41,6 +41,14 @@ pub fn set_px_test() {
   |> utils.test_cases(send_command_to_server)
 }
 
+pub fn config_get_test() {
+  [
+    #("CONFIG GET dir", "*2\r\n$3\r\ndir\r\n$16\r\n/tmp/redis-files\r\n"),
+    #("CONFIG GET dbfilename", "*2\r\n$10\r\ndbfilename\r\n$8\r\ndump.rdb\r\n"),
+  ]
+  |> utils.test_cases(send_command_to_server)
+}
+
 fn send_command_to_server(command: String) -> String {
   send_to_server(redis_cli_to_string(command))
 }
