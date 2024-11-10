@@ -12,7 +12,9 @@ import gleam/string
 import glisten.{type Connection, type Handler, type Message, Packet}
 import parse_error
 import parser
+import rdb
 import resp
+import simplifile
 
 const store_table_name = "redis"
 
@@ -22,9 +24,20 @@ pub type State {
   State(store: USet(#(String, String)), config: USet(#(String, String)))
 }
 
-pub fn new(config: List(#(String, String))) -> Handler(_, State) {
-  let store = setup_table(store_table_name, [])
-  let config = setup_table(config_table_name, config)
+pub fn new(config_params: List(#(String, String))) -> Handler(_, State) {
+  let config = setup_table(config_table_name, config_params)
+  let state_values = case
+    list.key_find(config_params, "dir"),
+    list.key_find(config_params, "dbfilename")
+  {
+    Ok(dir), Ok(dbfilename) -> {
+      let assert Ok(contents) = simplifile.read_bits(dir <> dbfilename)
+      let assert Ok(state_values) = rdb.parse(contents)
+      state_values
+    }
+    _, _ -> []
+  }
+  let store = setup_table(store_table_name, state_values)
 
   glisten.handler(fn(_conn) { #(State(store:, config:), None) }, handler)
 }
