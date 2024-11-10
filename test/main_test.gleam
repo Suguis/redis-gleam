@@ -14,6 +14,8 @@ pub fn main() {
 fn setup_server() -> Result(Subject(Message), StartError) {
   let assert Ok(_) =
     consts.rdb_file_contents
-    |> simplifile.write_bits(to: consts.rdb_file_dir <> consts.rdb_file_name)
+    |> simplifile.write_bits(
+      to: consts.rdb_file_dir <> "/" <> consts.rdb_file_name,
+    )
   server.new(consts.server_config) |> glisten.serve(consts.server_port)
 }

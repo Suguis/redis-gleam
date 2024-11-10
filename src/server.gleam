@@ -31,7 +31,7 @@ pub fn new(config_params: List(#(String, String))) -> Handler(_, State) {
     list.key_find(config_params, "dbfilename")
   {
     Ok(dir), Ok(dbfilename) -> {
-      let assert Ok(contents) = simplifile.read_bits(dir <> dbfilename)
+      let assert Ok(contents) = simplifile.read_bits(dir <> "/" <> dbfilename)
       let assert Ok(state_values) = rdb.parse(contents)
       state_values
     }
