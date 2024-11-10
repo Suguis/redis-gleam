@@ -12,6 +12,7 @@ pub fn main() {
 }
 
 fn setup_server() -> Result(Subject(Message), StartError) {
+  let _ = simplifile.create_directory(consts.rdb_file_dir)
   let assert Ok(_) =
     consts.rdb_file_contents
     |> simplifile.write_bits(
