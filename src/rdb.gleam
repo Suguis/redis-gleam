@@ -1,17 +1,22 @@
 import gleam/bit_array
 import gleam/int
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/result
+import tempo
+import tempo/datetime
 
-pub fn parse(input: BitArray) -> Result(List(#(String, String)), String) {
+pub fn parse(
+  input: BitArray,
+) -> Result(List(#(String, String, option.Option(tempo.DateTime))), String) {
   use input <- result.try(parse_header(input))
   parse_loop(input, [])
 }
 
 fn parse_loop(
   input: BitArray,
-  result: List(#(String, String)),
-) -> Result(List(#(String, String)), String) {
+  result: List(#(String, String, Option(tempo.DateTime))),
+) -> Result(List(#(String, String, Option(tempo.DateTime))), String) {
   case input {
     <<0xfa, rest:bits>> -> {
       use rest <- result.try(parse_metadata(rest))
@@ -35,14 +40,17 @@ fn parse_metadata(input: BitArray) -> Result(BitArray, String) {
 fn parse_database(
   input: BitArray,
   keys: Int,
-) -> Result(#(List(#(String, String)), BitArray), String) {
+) -> Result(
+  #(List(#(String, String, Option(tempo.DateTime))), BitArray),
+  String,
+) {
   case input, keys {
     input, 0 -> Ok(#([], input))
-    <<0x00, rest:bits>>, keys -> parse_database_entry(rest, keys)
-    <<0xfc, _px:little-size(64), 0x00, rest:bits>>, keys ->
-      parse_database_entry(rest, keys)
-    <<0xfd, _ex:little-size(32), 0x00, rest:bits>>, keys ->
-      parse_database_entry(rest, keys)
+    <<0x00, rest:bits>>, keys -> parse_database_entry(rest, keys, None)
+    <<0xfc, px:little-size(64), 0x00, rest:bits>>, keys ->
+      parse_database_entry(rest, keys, Some(datetime.from_unix_milli_utc(px)))
+    <<0xfd, ex:little-size(32), 0x00, rest:bits>>, keys ->
+      parse_database_entry(rest, keys, Some(datetime.from_unix_utc(ex)))
     _, _ -> Error("Invalid database section")
   }
 }
@@ -50,11 +58,15 @@ fn parse_database(
 fn parse_database_entry(
   input: BitArray,
   keys: Int,
-) -> Result(#(List(#(String, String)), BitArray), String) {
+  expire_time: Option(tempo.DateTime),
+) -> Result(
+  #(List(#(String, String, Option(tempo.DateTime))), BitArray),
+  String,
+) {
   use #(key, rest) <- result.try(parse_string(input))
   use #(value, rest) <- result.try(parse_string(rest))
   use #(list, rest) <- result.try(parse_database(rest, keys - 1))
-  Ok(#([#(key, value), ..list], rest))
+  Ok(#([#(key, value, expire_time), ..list], rest))
 }
 
 fn parse_string(input: BitArray) -> Result(#(String, BitArray), String) {

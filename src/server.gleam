@@ -4,9 +4,11 @@ import command
 import command_error
 import gleam/bit_array
 import gleam/bytes_builder
+import gleam/erlang/process
 import gleam/list
-import gleam/option.{None}
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
+import gleam/otp/task
 import gleam/result
 import gleam/string
 import glisten.{type Connection, type Handler, type Message, Packet}
@@ -15,6 +17,10 @@ import parser
 import rdb
 import resp
 import simplifile
+import tempo
+import tempo/datetime
+import tempo/duration
+import tempo/period
 
 const store_table_name = "redis"
 
@@ -25,7 +31,7 @@ pub type State {
 }
 
 pub fn new(config_params: List(#(String, String))) -> Handler(_, State) {
-  let config = setup_table(config_table_name, config_params)
+  let config = setup_config_table(config_table_name, config_params)
   let state_values = case
     list.key_find(config_params, "dir"),
     list.key_find(config_params, "dbfilename")
@@ -41,7 +47,7 @@ pub fn new(config_params: List(#(String, String))) -> Handler(_, State) {
     }
     _, _ -> []
   }
-  let store = setup_table(store_table_name, state_values)
+  let store = setup_store_table(store_table_name, state_values)
 
   glisten.handler(fn(_conn) { #(State(store:, config:), None) }, handler)
 }
@@ -83,7 +89,34 @@ fn respond(input: String, state: State) -> Result(List(String), String) {
   |> Ok
 }
 
-fn setup_table(name: String, values: List(#(a, b))) -> uset.USet(#(a, b)) {
+fn setup_store_table(
+  name: String,
+  values: List(#(a, b, Option(tempo.DateTime))),
+) -> uset.USet(#(a, b)) {
+  let assert Ok(table) = uset.new(name, 1, bravo.Public)
+  values
+  |> list.map(fn(val) {
+    let #(key, val, expire_datetime) = val
+    uset.insert(table, [#(key, val)])
+    case expire_datetime {
+      None -> Nil
+      Some(expire_datetime) -> {
+        task.async(fn() {
+          let time_to_expire =
+            datetime.difference(datetime.now_utc(), expire_datetime)
+            |> period.as_duration
+            |> duration.as_milliseconds
+          process.sleep(time_to_expire)
+          uset.delete_key(table, key)
+        })
+        Nil
+      }
+    }
+  })
+  table
+}
+
+fn setup_config_table(name: String, values: List(#(a, b))) -> uset.USet(#(a, b)) {
   let assert Ok(table) = uset.new(name, 1, bravo.Public)
   uset.insert(table, values)
   table

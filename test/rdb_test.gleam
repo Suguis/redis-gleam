@@ -1,6 +1,8 @@
 import gleam/bit_array
+import gleam/option.{None, Some}
 import gleeunit/should
 import rdb
+import tempo/datetime
 
 pub fn parse_test() {
   let input = <<
@@ -10,7 +12,11 @@ pub fn parse_test() {
     1_714_089_298:little-size(32), 0x00, 3, "baz":utf8, 3, "qux":utf8, 0xff,
     0x893bb74ef80f7719:size(64),
   >>
-  let table = [#("foobar", "bazqux"), #("foo", "bar"), #("baz", "qux")]
+  let table = [
+    #("foobar", "bazqux", None),
+    #("foo", "bar", Some(datetime.from_unix_milli_utc(1_713_824_559_637))),
+    #("baz", "qux", Some(datetime.from_unix_utc(1_714_089_298))),
+  ]
 
   rdb.parse(input) |> should.equal(Ok(table))
 }
@@ -20,6 +26,6 @@ pub fn parse_2_test() {
     "524544495330303131fa0a72656469732d62697473c040fa0972656469732d76657205372e322e30fe00fb01000009726173706265727279066f72616e6765fff085253910dc35eb0a"
     |> bit_array.base16_decode
 
-  let table = [#("raspberry", "orange")]
+  let table = [#("raspberry", "orange", None)]
   rdb.parse(input) |> should.equal(Ok(table))
 }
