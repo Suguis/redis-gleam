@@ -16,6 +16,7 @@ pub fn main() {
         |> result.flatten
         |> result.unwrap(6379)
       let assert Ok(_) = server.new(config) |> glisten.serve(port)
+      io.println("redis listening on " <> port |> int.to_string)
       process.sleep_forever()
     }
     Error(msg) -> {
@@ -34,7 +35,8 @@ fn read_args_loop(
 ) -> Result(List(#(String, String)), String) {
   case args {
     [] -> Ok(result)
-    ["--port", port] -> read_args_loop(args, [#("port", port), ..result])
+    ["--port", port, ..args] ->
+      read_args_loop(args, [#("port", port), ..result])
     ["--dir", dir, ..args] -> read_args_loop(args, [#("dir", dir), ..result])
     ["--dbfilename", dbfilename, ..args] ->
       read_args_loop(args, [#("dbfilename", dbfilename), ..result])
