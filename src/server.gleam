@@ -4,6 +4,7 @@ import command
 import command_error
 import gleam/bit_array
 import gleam/bytes_builder
+import gleam/io
 import gleam/list
 import gleam/option.{None}
 import gleam/otp/actor
@@ -31,9 +32,13 @@ pub fn new(config_params: List(#(String, String))) -> Handler(_, State) {
     list.key_find(config_params, "dbfilename")
   {
     Ok(dir), Ok(dbfilename) -> {
-      let assert Ok(contents) = simplifile.read_bits(dir <> "/" <> dbfilename)
-      let assert Ok(state_values) = rdb.parse(contents)
-      state_values
+      case simplifile.read_bits(dir <> "/" <> dbfilename) {
+        Ok(contents) -> {
+          let assert Ok(state_values) = rdb.parse(contents)
+          state_values
+        }
+        Error(_) -> []
+      }
     }
     _, _ -> []
   }
