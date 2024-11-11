@@ -21,7 +21,7 @@ fn parse_loop(
       use #(list, rest) <- result.try(parse_database(rest, keys))
       parse_loop(rest, list.append(result, list))
     }
-    <<0xff, _:size(64)>> -> Ok(result)
+    <<0xff, _:bits>> -> Ok(result)
     _ -> Error("invalid section")
   }
 }
