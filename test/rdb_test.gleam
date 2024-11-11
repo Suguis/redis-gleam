@@ -1,3 +1,4 @@
+import gleam/bit_array
 import gleeunit/should
 import rdb
 
@@ -11,5 +12,14 @@ pub fn parse_test() {
   >>
   let table = [#("foobar", "bazqux"), #("foo", "bar"), #("baz", "qux")]
 
+  rdb.parse(input) |> should.equal(Ok(table))
+}
+
+pub fn parse_2_test() {
+  let assert Ok(input) =
+    "524544495330303131fa0a72656469732d62697473c040fa0972656469732d76657205372e322e30fe00fb01000009726173706265727279066f72616e6765fff085253910dc35eb0a"
+    |> bit_array.base16_decode
+
+  let table = [#("raspberry", "orange")]
   rdb.parse(input) |> should.equal(Ok(table))
 }

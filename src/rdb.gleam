@@ -1,4 +1,5 @@
 import gleam/bit_array
+import gleam/int
 import gleam/list
 import gleam/result
 
@@ -36,12 +37,12 @@ fn parse_database(
   keys: Int,
 ) -> Result(#(List(#(String, String)), BitArray), String) {
   case input, keys {
+    input, 0 -> Ok(#([], input))
     <<0x00, rest:bits>>, keys -> parse_database_entry(rest, keys)
     <<0xfc, _px:little-size(64), 0x00, rest:bits>>, keys ->
       parse_database_entry(rest, keys)
     <<0xfd, _ex:little-size(32), 0x00, rest:bits>>, keys ->
       parse_database_entry(rest, keys)
-    input, 0 -> Ok(#([], input))
     _, _ -> Error("Invalid database section")
   }
 }
@@ -58,6 +59,10 @@ fn parse_database_entry(
 
 fn parse_string(input: BitArray) -> Result(#(String, BitArray), String) {
   case input {
+    <<0b11_000000, content:size(8), rest:bits>>
+    | <<0b11_000001, content:size(16), rest:bits>>
+    | <<0b11_000010, content:size(32), rest:bits>> ->
+      Ok(#(content |> int.to_string, rest))
     <<size:int, rest:bits>> -> {
       use str <- result.try(
         bit_array.slice(rest, at: 0, take: size)
