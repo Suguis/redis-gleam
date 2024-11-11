@@ -1,13 +1,21 @@
 import argv
 import gleam/erlang/process
+import gleam/int
 import gleam/io
+import gleam/list
+import gleam/result
 import glisten
 import server
 
 pub fn main() {
   case read_args(argv.load().arguments) {
     Ok(config) -> {
-      let assert Ok(_) = server.new(config) |> glisten.serve(6379)
+      let port =
+        list.key_find(config, "port")
+        |> result.map(int.parse)
+        |> result.flatten
+        |> result.unwrap(6379)
+      let assert Ok(_) = server.new(config) |> glisten.serve(port)
       process.sleep_forever()
     }
     Error(msg) -> {
@@ -26,6 +34,7 @@ fn read_args_loop(
 ) -> Result(List(#(String, String)), String) {
   case args {
     [] -> Ok(result)
+    ["--port", port] -> read_args_loop(args, [#("port", port), ..result])
     ["--dir", dir, ..args] -> read_args_loop(args, [#("dir", dir), ..result])
     ["--dbfilename", dbfilename, ..args] ->
       read_args_loop(args, [#("dbfilename", dbfilename), ..result])

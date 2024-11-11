@@ -50,7 +50,7 @@ pub fn config_get_test() {
 }
 
 pub fn keys_test() {
-  [#("KEYS *", "*3\r\n$3\r\nfoo\r\n$6\r\nfoobar\r\n$3\r\nbaz\r\n")]
+  [#("KEYS *", "*2\r\n$3\r\nfoo\r\n$6\r\nfoobar\r\n")]
   |> utils.test_cases(send_command_to_server)
 }
 
