@@ -4,7 +4,6 @@ import command
 import command_error
 import gleam/bit_array
 import gleam/bytes_builder
-import gleam/io
 import gleam/list
 import gleam/option.{None}
 import gleam/otp/actor
