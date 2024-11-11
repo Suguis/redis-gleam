@@ -97,19 +97,29 @@ fn setup_store_table(
   values
   |> list.map(fn(val) {
     let #(key, val, expire_datetime) = val
-    uset.insert(table, [#(key, val)])
     case expire_datetime {
-      None -> Nil
-      Some(expire_datetime) -> {
-        task.async(fn() {
-          let time_to_expire =
-            datetime.difference(datetime.now_utc(), expire_datetime)
-            |> period.as_duration
-            |> duration.as_milliseconds
-          process.sleep(time_to_expire)
-          uset.delete_key(table, key)
-        })
+      None -> {
+        uset.insert(table, [#(key, val)])
         Nil
+      }
+      Some(expire_datetime) -> {
+        case
+          expire_datetime |> datetime.is_earlier_or_equal(datetime.now_utc())
+        {
+          True -> Nil
+          False -> {
+            task.async(fn() {
+              uset.insert(table, [#(key, val)])
+              let time_to_expire =
+                datetime.difference(datetime.now_utc(), expire_datetime)
+                |> period.as_duration
+                |> duration.as_milliseconds
+              process.sleep(time_to_expire)
+              uset.delete_key(table, key)
+            })
+            Nil
+          }
+        }
       }
     }
   })
